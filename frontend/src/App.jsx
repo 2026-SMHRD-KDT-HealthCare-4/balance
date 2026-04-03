@@ -1,11 +1,18 @@
 import React from 'react';
+import { Routes, Route } from 'react-router-dom';
 import MainDashboard from './pages/MainDashboard';
+import MonitorPage from './pages/MonitorPage';
+import StretchPage from './pages/StretchPage';
+import InitialSetupPage from './pages/InitialSetupPage';
 
 function App() {
   return (
-    <div className="App">
-      <MainDashboard />
-    </div>
+    <Routes>
+      <Route path="/" element={<MainDashboard />} />
+      <Route path="/monitor" element={<MonitorPage />} />
+      <Route path="/stretch" element={<StretchPage />} />
+      <Route path="/setup" element={<InitialSetupPage />} />
+    </Routes>
   );
 }
 
