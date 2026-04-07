@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { usePoseDetection } from '../hooks/usePoseDetection';
+import { useScheduledPose } from '../hooks/useScheduledPose';
 import WebcamView from '../components/WebcamView';
 
 const MonitorPage = () => {
@@ -8,7 +8,8 @@ const MonitorPage = () => {
   const pipVideoRef = useRef(document.createElement('video')); // Ref로 관리하여 초기화 방지
   
   const savedBaseline = JSON.parse(localStorage.getItem('user_baseline') || 'null');
-  const { angle, status, isActive } = usePoseDetection(videoRef, savedBaseline);
+  // 1분/1시간 로직이 포함된 훅 사용
+  const { angle, status, isActive } = useScheduledPose(videoRef);
 
   // 최신 데이터 참조용 Ref
   const statusRef = useRef(status);

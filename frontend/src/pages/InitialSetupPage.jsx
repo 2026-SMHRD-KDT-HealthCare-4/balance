@@ -13,8 +13,8 @@ const InitialSetupPage = () => {
   const [countdown, setCountdown] = useState(5);         // 카운트다운 숫자
   const [isSaving, setIsSaving] = useState(false);
 
-  // 실시간 데이터 가져오기 (기준값 없이 절대값 측정)
-  const { angle, shoulderDiff, forwardRatio, isActive } = usePoseDetection(videoRef);
+  // 스케줄러 없는 순수 훅 사용
+const { angle, shoulderDiff, forwardRatio } = usePoseDetection(videoRef, true);
 
   // 5초 측정 로직
   useEffect(() => {

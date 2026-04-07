@@ -1,29 +1,27 @@
+// [2번 파일] 측면 전용 탐지 훅
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { initializeCapturePose, sendToCapturePose } from '../ai/mediapipe';
-import { analyzePosture } from '../ai/poseAnalyzer';
+import { analyzeSidePosture } from '../ai/sidePoseAnalyzer'; // 1번 파일 불러오기
 
-// 순수하게 Pose를 탐지하고 데이터만 반환하는 Hook
-export const usePoseDetection = (videoRef, enabled = true) => {
-  const [postureData, setPostureData] = useState({ 
+export const useSidePoseDetection = (videoRef, enabled = true) => {
+  const [sideData, setSideData] = useState({ 
     angle: 0, 
-    status: '대기',
-    shoulderDiff: 0,
-    forwardRatio: 0 
+    forwardRatio: 0,
+    status: '대기' 
   });
   
   const requestRef = useRef();
   const enabledRef = useRef(enabled);
 
-  // 실시간으로 변하는 enabled 상태를 Ref에 반영 (무한루프 방지)
   useEffect(() => {
     enabledRef.current = enabled;
   }, [enabled]);
 
   const onResults = useCallback((results) => {
-    // 활성화 상태일 때만 분석 진행
     if (results.poseLandmarks && enabledRef.current) {
-      const analysis = analyzePosture(results.poseLandmarks);
-      setPostureData(analysis);
+      // 측면 전용 분석 함수로 데이터 추출
+      const analysis = analyzeSidePosture(results.poseLandmarks);
+      setSideData(analysis);
     }
   }, []);
 
@@ -44,5 +42,5 @@ export const usePoseDetection = (videoRef, enabled = true) => {
     };
   }, [onResults, detect]);
 
-  return postureData;
+  return sideData;
 };
