@@ -1,5 +1,3 @@
-// src/ai/captureMediapipe.js
-
 const capturePose = new window.Pose({
   locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
 });
@@ -12,7 +10,10 @@ capturePose.setOptions({
 });
 
 export const initializeCapturePose = (onResults) => {
-  capturePose.onResults(onResults);
+  capturePose.onResults((results) => {
+    
+    onResults(results);
+  });
   return capturePose;
 };
 
