@@ -11,6 +11,7 @@ import Setting from './pages/Setting';
 import Diagnosis from './pages/Diagnosis';
 import SideCapturePage from './pages/SideCapturePage'; // 의성님 페이지 1
 import MonitorPage from './pages/MonitorPage';       // 의성님 페이지 2
+import InitialSetupPage from './pages/InitialSetupPage';
 
 // 별도로 분리한 Footer 컴포넌트 임포트
 import Footer from './components/Footer';
@@ -50,6 +51,7 @@ function App() {
             {/* 실시간 측정 페이지: 대시보드에서 들어오기 때문에 레이아웃 유지가 UX상 유리할 수 있음 */}
             {/* 만약 카메라 화면을 더 크게 쓰고 싶다면 그룹 1(위쪽)로 옮기십시오. */}
             <Route path="/monitor" element={<MonitorPage />} />
+            <Route path="/setup" element={<InitialSetupPage />} />
           </Route>
 
           {/* 예외 경로 처리 */}

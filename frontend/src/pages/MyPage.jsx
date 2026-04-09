@@ -34,37 +34,24 @@ export default function MyPage() {
     return CONFIG.GREEN;
   }, [score]);
 
-  // 로그아웃 핸들러 복구
   const handleLogout = () => {
-  // 브라우저 기본 확인창 띄우기
-  const isConfirmed = window.confirm("로그아웃하시겠습니까?");
-
-  if (isConfirmed) {
-    // 1. 로컬 스토리지 데이터 삭제
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // 2. 메시지 알림 (선택 사항)
-    alert("로그아웃되었습니다.");
-    
-    // 3. 메인 페이지나 로그인 페이지로 이동
-    navigate('/', { replace: true });
-  } else {
-    // 사용자가 '취소'를 누른 경우 아무 일도 일어나지 않음
-    console.log("로그아웃 취소");
-  }
-};
+    if (window.confirm("로그아웃하시겠습니까?")) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/', { replace: true });
+    }
+  };
 
   return (
     <div style={{ ...s.layout, background: current.bgColor }}>
-      {/* 1. 상단 고정 헤더 - 로그아웃 기능 연결 확인 */}
+      {/* 1. 상단 고정 헤더 */}
       <header style={{ ...s.fixedHeader, background: current.bgColor }}>
         <h1 style={s.logo}>Re:balance</h1>
         <button onClick={handleLogout} style={s.logoutBtn}>로그아웃</button>
       </header>
 
+      {/* 2. 스크롤 본문 영역 */}
       <div style={s.scrollBox}>
-        {/* 상단 텍스트 섹션: 가독성 확보 */}
         <section style={s.llmSection}>
           <div style={{ ...s.aiBadge, color: current.color }}>AI COACH</div>
           <h2 style={s.mainGreeting}>{current.advice}</h2>
@@ -73,7 +60,6 @@ export default function MyPage() {
           </p>
         </section>
 
-        {/* 위험 상태 배너 */}
         {score < 40 && (
           <div style={s.emergencyBanner}>
             <span style={{flex: 1}}>⚠️ <b>긴급:</b> 1분 스트레칭이 필요합니다</span>
@@ -81,7 +67,6 @@ export default function MyPage() {
           </div>
         )}
 
-        {/* 캐릭터 섹션: 크기 재조정(320px) 및 입체감 강화 */}
         <section style={s.heroSection}>
           <div style={{ ...s.characterHalo, backgroundColor: current.color }} />
           <div style={s.imageWrapper}>
@@ -91,7 +76,7 @@ export default function MyPage() {
               style={{ 
                 ...s.charImg, 
                 animation: current.animation,
-                filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' // 크기 대신 그림자로 강조
+                filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.15))' 
               }} 
             />
           </div>
@@ -108,7 +93,6 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* 정보 카드 그리드 */}
         <section style={s.contentSection}>
           <div style={s.infoGrid}>
             <div style={s.infoCard}>
@@ -120,39 +104,44 @@ export default function MyPage() {
               <span style={{ ...s.infoVal, color: '#7C9E87' }}>4 / 5회</span>
             </div>
           </div>
-          <div style={{ height: '30px' }} />
+          {/* 하단 고정 버튼에 가려지지 않도록 추가 여백 */}
+          <div style={{ height: '140px' }} />
         </section>
       </div>
 
-      {/* 3. 하단 고정 영역 */}
+      {/* 3. 하단 고정 버튼 영역 (스크롤 위로 플로팅) */}
       <div style={s.fixedBottomArea}>
-        <div style={s.buttonContainer}>
-          <button onClick={() => navigate('/camera')} style={s.cameraBtn}>
-            지금 자세 측정 시작하기
+        <div style={s.buttonGrid}>
+          <button onClick={() => navigate('/monitoring')} style={s.subBtn}>
+            자세 모니터링
+          </button>
+          <button onClick={() => navigate('/setup')} style={s.mainBtn}>
+            거북목 측정
           </button>
         </div>
-        
-        <footer style={s.footer}>
-          {[
-            { id: 'home', label: 'HOME', path: '/mypage', icon: <FaHome /> },
-            { id: 'stretch', label: '스트레칭', path: '/stretching', icon: <TbStretching /> },
-            { id: 'stats', label: '기록', path: '/dashboard', icon: <FcStatistics /> },
-            { id: 'settings', label: '설정', path: '/settings', icon: <VscGear /> },
-          ].map((menu) => (
-            <div key={menu.id} onClick={() => navigate(menu.path)} style={s.navItem(location.pathname === menu.path)}>
-              <div style={{ fontSize: '1.5rem' }}>{menu.icon}</div>
-              <span style={{ fontSize: '0.6rem', marginTop: '4px' }}>{menu.label}</span>
-            </div>
-          ))}
-        </footer>
       </div>
+        
+      {/* 4. 내비게이션 푸터 */}
+      <footer style={s.footer}>
+        {[
+          { id: 'home', label: 'HOME', path: '/mypage', icon: <FaHome /> },
+          { id: 'stretch', label: '스트레칭', path: '/stretching', icon: <TbStretching /> },
+          { id: 'stats', label: '기록', path: '/dashboard', icon: <FcStatistics /> },
+          { id: 'settings', label: '설정', path: '/settings', icon: <VscGear /> },
+        ].map((menu) => (
+          <div key={menu.id} onClick={() => navigate(menu.path)} style={s.navItem(location.pathname === menu.path)}>
+            <div style={{ fontSize: '1.5rem' }}>{menu.icon}</div>
+            <span style={{ fontSize: '0.6rem', marginTop: '4px' }}>{menu.label}</span>
+          </div>
+        ))}
+      </footer>
     </div>
   );
 }
 
 const s = {
-  layout: { position: 'fixed', inset: 0, maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', transition: 'background 0.5s ease' },
-  fixedHeader: { height: '70px', padding: '0 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 },
+  layout: { position: 'fixed', inset: 0, maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', transition: 'background 0.5s ease', overflow: 'hidden' },
+  fixedHeader: { height: '70px', padding: '0 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000, flexShrink: 0 },
   logo: { fontSize: '1.2rem', fontWeight: '900', color: '#7C9E87' },
   logoutBtn: { padding: '8px 12px', background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '10px', fontSize: '0.7rem', color: '#666', cursor: 'pointer' },
   scrollBox: { flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' },
@@ -164,7 +153,7 @@ const s = {
   emergencyBtn: { background: '#FFF', color: '#EF4444', border: 'none', padding: '5px 10px', borderRadius: '8px', fontWeight: '800', marginLeft: '10px' },
   heroSection: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 25px' },
   characterHalo: { position: 'absolute', top: '10%', width: '280px', height: '280px', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.2, zIndex: 0 },
-  imageWrapper: { zIndex: 1, height: '320px', display: 'flex', alignItems: 'center', marginBottom: '10px' }, // 크기 최적화
+  imageWrapper: { zIndex: 1, height: '320px', display: 'flex', alignItems: 'center', marginBottom: '10px' },
   charImg: { height: '100%', objectFit: 'contain' },
   statusInfoRow: { width: '100%', display: 'flex', alignItems: 'center', padding: '20px 0', borderTop: '1px solid rgba(0,0,0,0.05)' },
   statusLeft: { flex: '0 0 85px', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(0,0,0,0.05)', marginRight: '20px' },
@@ -178,9 +167,29 @@ const s = {
   infoCard: { background: 'rgba(255,255,255,0.6)', padding: '1.2rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid rgba(255,255,255,0.4)' },
   infoLabel: { fontSize: '0.7rem', color: '#9CA3AF', marginBottom: '4px' },
   infoVal: { fontSize: '1rem', fontWeight: '800' },
-  fixedBottomArea: { position: 'relative', background: 'transparent' },
-  buttonContainer: { padding: '0 25px 15px' },
-  cameraBtn: { width: '100%', padding: '1.1rem', background: '#1F2937', color: '#fff', border: 'none', borderRadius: '18px', fontSize: '1rem', fontWeight: '800' },
-  footer: { height: '80px', background: '#D9D3D0', display: 'flex', borderTopLeftRadius: '25px', borderTopRightRadius: '25px' },
-  navItem: (active) => ({ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: active ? '#000' : '#717171' })
+  
+  // 하단 고정 버튼 스타일
+  fixedBottomArea: { 
+    position: 'absolute', 
+    bottom: '80px', 
+    left: 0, 
+    right: 0, 
+    padding: '20px 25px 15px', 
+    zIndex: 10,
+    background: 'linear-gradient(to top, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 100%)'
+  },
+  buttonGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+  subBtn: { 
+    width: '100%', padding: '1.1rem 0', background: '#f1c2e6', color: '#b650a5', 
+    border: 'none', borderRadius: '18px', fontSize: '0.95rem', 
+    fontWeight: '800', boxShadow: '0 8px 15px rgba(0,0,0,0.05)', cursor: 'pointer' 
+  },
+  mainBtn: { 
+    width: '100%', padding: '1.1rem 0', background: '#DCFCE7', color: '#166534', 
+    border: 'none', borderRadius: '18px', fontSize: '0.95rem', 
+    fontWeight: '800', boxShadow: '0 8px 15px rgba(0,0,0,0.1)', cursor: 'pointer' 
+  },
+  
+  footer: { height: '80px', background: '#D9D3D0', display: 'flex', borderTopLeftRadius: '25px', borderTopRightRadius: '25px', flexShrink: 0, zIndex: 1000 },
+  navItem: (active) => ({ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: active ? '#000' : '#717171', cursor: 'pointer' })
 };
