@@ -9,46 +9,43 @@ import { savePoseLog } from '../api/poseApi';
 const SideCapturePage = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const isSavingRef = useRef(false); // 리렌더링 없이 즉각적인 상태 잠금을 위해 ref 사용
+  
   const [timer, setTimer] = useState(null);
   const [isMeasuring, setIsMeasuring] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const { runAnalysis } = useNeckDiagnostic();
 
   
 
-  // SideCapturePage.jsx 내의 useEffect 수정
-useEffect(() => {
-  initializeCapturePose(async (results) => {
-    // 팩트: 결과가 없으면 즉시 종료
-    if (!results || !results.poseLandmarks) return;
+  // 1. 초기화는 마운트 시 단 한 번만!
+  useEffect(() => {
+    initializeCapturePose(async (results) => {
+      if (!results || !results.poseLandmarks || isSavingRef.current) return;
 
-    // 분석 실행
-    const analysisResult = runAnalysis(results.poseLandmarks);
-    
-    // 분석 결과가 존재할 때만 '딱 한 번' 실행되도록 함
-    if (analysisResult && !isSaving) {
-      console.log("📸 데이터 포착 성공:", analysisResult);
+      const analysisResult = runAnalysis(results.poseLandmarks);
       
-      setIsSaving(true); // 중복 실행 방지
-      
-      try {
-        // 서버 저장 (실패해도 일단 이동은 하게 처리)
-        await savePoseLog({
-          angle: analysisResult.angle,
-          status: analysisResult.status,
+      if (analysisResult) {
+        isSavingRef.current = true; // 즉시 잠금
+        console.log("📸 데이터 포착 성공:", analysisResult);
+        
+        try {
+          await savePoseLog({
+            angle: analysisResult.angle,
+            status: analysisResult.status,
+          });
+        } catch (e) {
+          console.error("서버 저장 실패");
+        }
+
+        navigate('/diagnosis', { 
+          state: { result: analysisResult },
+          replace: true 
         });
-      } catch (e) {
-        console.error("서버 저장 실패, 하지만 결과 페이지로 이동합니다.");
       }
+    });
 
-      // 결과 데이터를 들고 Diagnosis로 즉시 이동
-      navigate('/diagnosis', { 
-        state: { result: analysisResult },
-        replace: true 
-      });
-    }
-  });
-}, [runAnalysis, isSaving, navigate]); // isMeasuring 의존성 제거
+    // Cleanup: 페이지 이탈 시 카메라/AI 프로세스 정리 로직 필요 시 추가
+  }, [runAnalysis, navigate]);
 
 
   // 뒤로가기 버튼 핸들러 (알림창 추가)
@@ -62,12 +59,14 @@ useEffect(() => {
     setTimer(5);
   };
 
+  // 2. 타이머 로직 개선
   useEffect(() => {
     if (timer === null) return;
     if (timer > 0) {
       const id = setTimeout(() => setTimer(timer - 1), 1000);
       return () => clearTimeout(id);
     } else {
+      // 타이머 종료 시점
       if (videoRef.current && videoRef.current.readyState >= 2) {
         sendToCapturePose(videoRef.current);
       }
@@ -87,25 +86,25 @@ useEffect(() => {
       </header>
 
       <div style={contentAreaStyle}>
-        <p style={subTitleStyle}>실루엣에 맞춰 측면으로 서주세요.</p>
+        {/* 가독성을 위해 absolute 위치 수정 */}
+        <p style={subTitleLabelStyle}>실루엣에 맞춰 측면으로 서주세요.</p>
         
-        {/* 1. 비디오와 가이드라인을 묶는 고정 비율 컨테이너 */}
         <div style={videoContainerStyle}>
-          
-          {/* 실제 비디오 (WebcamView 내부 video에 objectFit: cover 적용 권장) */}
           <WebcamView videoRef={videoRef} />
           
-          {/* 2. 가이드라인을 비디오와 완전히 겹침 */}
-          <svg style={svgOverlayStyle} viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet">
-            <path
-              d="M320,30 C210,30 210,180 210,180 C130,210 120,320 120,400 C120,470 200,480 320,480 C440,480 520,470 520,400 C520,320 510,210 430,180 C430,180 430,30 320,30 Z"
-              fill="none" 
-              stroke="#e67e22" 
-              strokeWidth="6" 
-              strokeDasharray="15,10" 
-              style={{ opacity: 0.6 }}
-            />
-          </svg>
+          {/* 가이드라인 중앙 정렬 최적화 */}
+          <div style={guideOverlayWrapper}>
+            <svg viewBox="0 0 640 480" style={{ width: '100%', height: '100%' }}>
+              <path
+                d="M320,30 C210,30 210,180 210,180 C130,210 120,320 120,400 C120,470 200,480 320,480 C440,480 520,470 520,400 C520,320 510,210 430,180 C430,180 430,30 320,30 Z"
+                fill="none" 
+                stroke="#e67e22" 
+                strokeWidth="6" 
+                strokeDasharray="15,10" 
+                style={{ opacity: 0.8 }}
+              />
+            </svg>
+          </div>
 
           {timer !== null && (
             <div style={timerOverlayStyle}>{timer > 0 ? timer : "📸"}</div>
@@ -114,7 +113,11 @@ useEffect(() => {
       </div>
 
       <div style={footerStyle}>
-        <button onClick={handleStartCapture} style={buttonStyle}>
+        <button 
+          onClick={handleStartCapture} 
+          style={{...buttonStyle, backgroundColor: isMeasuring ? '#ccc' : '#4A90E2'}}
+          disabled={isMeasuring}
+        >
           {isMeasuring ? "자세 고정 중..." : "측정 시작"}
         </button>
       </div>
@@ -126,16 +129,10 @@ useEffect(() => {
 
 const videoContainerStyle = {
   position: 'relative',
-  width: '100%',
-  maxWidth: '800px', // 전체 박스 크기 조절 (카메라 너무 커지지 않게)
-  aspectRatio: '4 / 3',
-  backgroundColor: '#fff',
-  borderRadius: '24px',
-  display: 'flex', // 자식(cameraWrapper)을 중앙에 배치
-  justifyContent: 'center',
-  alignItems: 'center',
-  overflow: 'hidden',
-  margin: '0 auto'
+  width: '640px',  // 고정하지 않으면 top: 50은 시한폭탄입니다.
+  height: '480px', 
+  margin: '0 auto',
+  overflow: 'hidden'
 };
 
 const containerStyle = {
@@ -162,15 +159,11 @@ const headerStyle = {
 
 const backBtnStyle = { background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer' };
 const titleStyle = { fontSize: '1.1rem', fontWeight: '800', margin: 0 };
-const subTitleStyle = { 
-  position: 'absolute',
-  top: '20px',
-  textAlign: 'center', 
-  color: 'black', // 카메라 위에서 잘 보이도록 화이트
-  fontSize: '1rem', 
+const subTitleLabelStyle = {
+  marginBottom: '20px',
+  fontSize: '1rem',
   fontWeight: '600',
-  textShadow: '0px 2px 4px rgba(0,0,0,0.5)', // 가독성을 위한 그림자
-  zIndex: 10
+  color: '#333'
 };
 
 const contentAreaStyle = {
@@ -181,6 +174,18 @@ const contentAreaStyle = {
   alignItems: 'center',
   position: 'relative', // 가이드라인과 텍스트 배치를 위해
   overflow: 'hidden'
+};
+
+const guideOverlayWrapper = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  pointerEvents: 'none'
 };
 
 const cameraWrapperStyle = {
@@ -194,9 +199,9 @@ const cameraWrapperStyle = {
 
 const svgOverlayStyle = {
   position: 'absolute',
-  top: 50,
-  left: 100,
-  width: '80%', // 이제 흰 배경이 아니라 비디오 박스의 100%입니다.
+  top: '50px',     // px 단위를 명시적으로 작성 권장
+  left: '100px',
+  width: '80%', 
   height: 'auto',
   pointerEvents: 'none',
   zIndex: 10
