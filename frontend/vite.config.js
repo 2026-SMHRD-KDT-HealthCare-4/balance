@@ -5,16 +5,25 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // 브라우저에서 /api로 시작하는 요청을 보내면 http://localhost:8080으로 전달합니다.
+      
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       }
     }
   },
   optimizeDeps: {
-    include: ['@mediapipe/pose', '@mediapipe/camera_utils'],
+    // 기존 MediaPipe 설정에 TensorFlow.js와 Teachable Machine 설정을 추가합니다.
+    include: [
+      '@mediapipe/pose', 
+      '@mediapipe/camera_utils',
+      '@teachablemachine/pose', 
+      '@tensorflow/tfjs',
+      '@tensorflow/tfjs-core',
+      '@tensorflow/tfjs-converter',
+      '@tensorflow/tfjs-backend-webgl'
+    ],
   },
   build: {
     commonjsOptions: {
