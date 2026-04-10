@@ -8,7 +8,6 @@ module.exports = (sequelize) => {
       primaryKey: true,
       autoIncrement: true
     },
-    // 1. 여기에 진짜 아이디를 담을 login_id를 추가합니다.
     login_id: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -18,7 +17,6 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(10),
       allowNull: false
     },
-    // 2. email은 이제 '진짜 이메일 주소'만 담는 용도로 둡니다.
     email: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -28,14 +26,28 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(100),
       allowNull: true
     },
+    // --- 정자세 기준값(Baseline) 컬럼 ---
+    // MediaPipe 수치는 소수점이 매우 정밀하므로 FLOAT보다는 DOUBLE 사용을 권장합니다.
+    base_shoulder_width: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+      defaultValue: null
+    },
+    base_neck_dist: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+      defaultValue: null
+    },
+    base_shoulder_diff: {
+      type: DataTypes.DOUBLE,
+      allowNull: true,
+      defaultValue: null
+    },
+    // ------------------------------------
     provider: {
       type: DataTypes.STRING(10),
       allowNull: false,
       defaultValue: 'local'
-    },
-    provider_id: {
-      type: DataTypes.STRING(100),
-      allowNull: true
     },
     created_at: {
       type: DataTypes.DATE,
@@ -44,14 +56,8 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'user_table',
     timestamps: false,
-    createdAt: 'created_at', // 실제 컬럼명 명시
-    updatedAt: false
+    underscored: true // DB 컬럼명이 스네이크 케이스(base_neck_dist)일 때 연동을 도와줍니다.
   })
-
-  User.associate = (models) => {
-    User.hasMany(models.Session, { foreignKey: 'user_id' })
-  }
 
   return User
 }
-// 주석용

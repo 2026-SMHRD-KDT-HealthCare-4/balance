@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // 1. useLocation 추가
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as FaIcons from "react-icons/fa";
 import WebcamView from '../components/WebcamView';
 import { initializeCapturePose, sendToCapturePose } from '../ai/mediapipe';
@@ -16,7 +16,6 @@ const SideCapturePage = () => {
   const [timer, setTimer] = useState(null);
   const [isMeasuring, setIsMeasuring] = useState(false);
 
-  // 2. 훅에서 함수를 안전하게 가져오기 (이름 확인 필수)
   const diagnostic = useNeckDiagnostic();
   const runAnalysis = diagnostic?.runAnalysis || diagnostic; 
 
@@ -24,30 +23,50 @@ const SideCapturePage = () => {
     initializeCapturePose(async (results) => {
       if (!results || !results.poseLandmarks || isSavingRef.current) return;
 
-      // 3. 분석 실행
       const analysisResult = typeof runAnalysis === 'function' ? runAnalysis(results.poseLandmarks) : null;
       
       if (analysisResult) {
         isSavingRef.current = true; 
         console.log("📸 데이터 포착 성공:", analysisResult);
         
+        // --- [수정 포인트] 데이터 임시 저장 로직 ---
+        // 비로그인 사용자나 메인에서 진단하러 온 사용자를 위해 로컬 스토리지에 박제
+        const diagnosisData = {
+          baseShoulderWidth: analysisResult.shoulderWidth || 0,
+          baseNeckDist: analysisResult.neckVerticalDist || analysisResult.angle, // 거리 혹은 각도
+          baseShoulderDiff: analysisResult.shoulderDiff || 0,
+          measuredAt: new Date().toISOString(),
+          isInitial: true // 이 데이터가 초기 기준값임을 표시
+        };
+        
+        // 회원가입 전까지 유지될 임시 저장소
+        localStorage.setItem('temp_diagnosis', JSON.stringify(diagnosisData));
+        // 모니터링 페이지에서 즉시 사용할 수 있도록 baseline도 같이 업데이트
+        localStorage.setItem('user_baseline', JSON.stringify(diagnosisData));
+
         try {
-          await savePoseLog({
-            angle: analysisResult.angle,
-            status: analysisResult.status,
-          });
+          // 로그인된 유저라면 기존처럼 서버에도 저장 시도
+          const token = localStorage.getItem('token');
+          if (token) {
+            await savePoseLog({
+              angle: analysisResult.angle,
+              status: analysisResult.status,
+            });
+          }
 
           if (from === 'mypage') {
             localStorage.setItem('lastSideCaptureDate', new Date().toISOString());
           }
         } catch (e) {
-          console.error("서버 저장 실패");
+          console.error("서버 저장 실패 (로그인 상태 확인 필요)");
         }
 
+        // 페이지 이동
         if (from === 'mypage') {
           alert("주간 측면 기록이 완료되었습니다!");
           navigate('/mypage', { replace: true });
         } else {
+          // 진단 결과 페이지로 이동 (분석 결과를 state로 들고 감)
           navigate('/diagnosis', { 
             state: { result: analysisResult },
             replace: true 
@@ -57,7 +76,6 @@ const SideCapturePage = () => {
     });
   }, [runAnalysis, navigate, from]); 
 
-  // 4. 뒤로가기 핸들러 (중괄호 누락 수정)
   const handleBackWithConfirm = () => {
     const leave = window.confirm("지금 나가면 측정 결과가 저장되지 않습니다. 그래도 나가시겠습니까?");
     if (leave) {
@@ -133,7 +151,7 @@ const SideCapturePage = () => {
   );
 };
 
-// --- 스타일 객체 (기존 유지) ---
+// --- 스타일 객체 ---
 const containerStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#fff', zIndex: 2000, display: 'flex', flexDirection: 'column' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', zIndex: 2100 };
 const videoContainerStyle = { position: 'relative', width: '100%', maxWidth: '640px', aspectRatio: '4/3', margin: '0 auto', overflow: 'hidden', background: '#000' };
