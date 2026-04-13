@@ -3,14 +3,13 @@ import * as tf from '@tensorflow/tfjs';
 import * as tmPose from '@teachablemachine/pose';
 
 const STRETCH_STEPS = [
-  { id: "NeckStretch", name: "목 스트레칭", image: "/images/sideneck.jpg" },
-  { id: "CrossArm", name: "팔 교차 스트레칭", image: "/images/shoulder.jpg" },
-  { id: "SideStretch", name: "옆구리 스트레칭", image: "/images/side.jpg" }
+  { id: "NeckStretch", name: "목 스트레칭",     image: "/images/sideneck.jpg" },
+  { id: "OverHand",    name: "옆구리 스트레칭", image: "/images/overhand.jpg" }
 ];
 
-const HOLD_TARGET = 5000; // 5초 유지
+const HOLD_TARGET = 3000; // 3초 유지
 const REST_TARGET = 3000; // 3초 휴식
-const TOTAL_REPEATS = 4;
+const TOTAL_REPEATS = 2;
 
 const StretchPage = ({ onFinish }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -23,25 +22,35 @@ const StretchPage = ({ onFinish }) => {
   const webcamRef = useRef(null);
   const requestRef = useRef();
 
-  // 1. 모델 및 웹캠 초기화 (기존 로직 유지)
+  // ✅ currentStep을 ref로도 유지 → predict 클로저에서 최신값 참조 가능
+  const currentStepRef = useRef(currentStep);
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+
+  // 1. 모델 및 웹캠 초기화
   useEffect(() => {
     const MODEL_URL = "https://teachablemachine.withgoogle.com/models/2U5oQKq_T/";
     let model;
 
     const init = async () => {
-      model = await tmPose.load(MODEL_URL + 'model.json', MODEL_URL + 'metadata.json');
-      const size = 400; 
-      const webcam = new tmPose.Webcam(size, size, true);
-      await webcam.setup();
-      await webcam.play();
-      webcamRef.current = webcam;
+      try {
+        model = await tmPose.load(MODEL_URL + 'model.json', MODEL_URL + 'metadata.json');
+        const size = 400; 
+        const webcam = new tmPose.Webcam(size, size, true);
+        await webcam.setup();
+        await webcam.play();
+        webcamRef.current = webcam;
 
-      const loop = async () => {
-        webcam.update();
-        await predict(model);
+        const loop = async () => {
+          webcam.update();
+          await predict(model);
+          requestRef.current = window.requestAnimationFrame(loop);
+        };
         requestRef.current = window.requestAnimationFrame(loop);
-      };
-      requestRef.current = window.requestAnimationFrame(loop);
+      } catch (err) {
+        console.error("모델 또는 웹캠 초기화 실패:", err);
+      }
     };
 
     init();
@@ -51,7 +60,7 @@ const StretchPage = ({ onFinish }) => {
     };
   }, []);
 
-  // 2. 타이머 로직 (게이지 1번당 불 1개 로직)
+  // 2. 타이머 로직
   useEffect(() => {
     let timer;
     if (isResting) {
@@ -71,7 +80,6 @@ const StretchPage = ({ onFinish }) => {
         setHoldTime((prev) => {
           const nextTime = prev + 100;
           if (nextTime >= HOLD_TARGET) {
-            // 5초 완료 시점: 여기서 repeatCount를 올리면 즉시 불이 하나 켜짐
             const nextCount = repeatCount + 1;
             if (nextCount < TOTAL_REPEATS) {
               setRepeatCount(nextCount);
@@ -98,20 +106,36 @@ const StretchPage = ({ onFinish }) => {
     return () => clearInterval(timer);
   }, [isCorrect, isResting, repeatCount, currentStep, onFinish]);
 
+  // ✅ null 체크 + try-catch + posenetOutput 유효성 검사 추가
   const predict = async (model) => {
-    if (!webcamRef.current || !model) return;
-    const { pose, posenetOutput } = await model.estimatePose(webcamRef.current.canvas);
-    const prediction = await model.predict(posenetOutput);
-    const step = STRETCH_STEPS[currentStep];
-    const target = prediction.find(p => p.className === step.id);
-    setIsCorrect(target && target.probability > 0.9);
-    draw(pose);
+    if (!webcamRef.current || !webcamRef.current.canvas) return;
+    if (!model) return;
+
+    try {
+      const { pose, posenetOutput } = await model.estimatePose(webcamRef.current.canvas);
+
+      // ✅ posenetOutput이 유효한지 확인
+      if (!posenetOutput) return;
+
+      const prediction = await model.predict(posenetOutput);
+      console.log(prediction.map(p => `${p.className}: ${p.probability.toFixed(2)}`).join(' | '));
+
+      // ✅ currentStepRef로 최신 step 참조 (클로저 stale 문제 방지)
+      const step = STRETCH_STEPS[currentStepRef.current];
+      const target = prediction.find(p => p.className === step.id);
+      setIsCorrect(target && target.probability > 0.9);
+      draw(pose);
+    } catch (err) {
+      // 에러가 나도 loop는 계속 돌아야 하므로 throw하지 않음
+      console.warn("predict 스킵 (일시적 에러):", err.message);
+    }
   };
 
   const draw = (pose) => {
     if (!canvasRef.current || !webcamRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    // ✅ willReadFrequently: true 추가 → Canvas2D readback 경고 해결
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const container = canvas.parentElement;
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
@@ -147,7 +171,8 @@ const StretchPage = ({ onFinish }) => {
         <h2 style={styles.title}>{STRETCH_STEPS[currentStep].name}</h2>
         
         <div style={styles.countBadge}>
-          진행 횟수: <span style={{color: '#38bdf8'}}>{Math.min(repeatCount + 1, TOTAL_REPEATS)} / 4</span>
+          {currentStep + 1} / {STRETCH_STEPS.length} 번째 동작 : 
+          <span style={{color: '#38bdf8'}}> {Math.min(repeatCount + 1, TOTAL_REPEATS)} / {TOTAL_REPEATS}회</span>
         </div>
 
         <div style={styles.imgContainer}>
@@ -169,8 +194,7 @@ const StretchPage = ({ onFinish }) => {
           </div>
 
           <div style={styles.dotContainer}>
-            {[0, 1, 2, 3].map(i => {
-              // 5초를 채워서 repeatCount가 올라갔을 때만 초록불로 바뀜
+            {[0, 1].map(i => {
               const isFinished = i < repeatCount;
               return (
                 <div key={i} style={{

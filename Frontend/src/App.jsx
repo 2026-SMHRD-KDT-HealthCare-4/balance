@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 
 // [팀원 페이지 임포트]
 import Landing from './pages/Landing';
@@ -9,7 +9,7 @@ import MyPage from './pages/MyPage';
 import Setting from './pages/Setting';
 import Diagnosis from './pages/Diagnosis';
 import SideCapturePage from './pages/SideCapturePage'; 
-import TeamMonitorPage from './pages/TeamMonitorPage'; // 👈 팀원 기존 페이지 다시 추가
+import TeamMonitorPage from './pages/TeamMonitorPage';
 import InitialSetupPage from './pages/InitialSetupPage';
 // [예훈님 페이지 임포트]
 import MonitorPageStretch from './pages/MonitorPage_Stretch'; 
