@@ -8,7 +8,6 @@ module.exports = (sequelize) => {
       primaryKey: true,
       autoIncrement: true
     },
-    // 1. 여기에 진짜 아이디를 담을 login_id를 추가합니다.
     login_id: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -18,7 +17,6 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(10),
       allowNull: false
     },
-    // 2. email은 이제 '진짜 이메일 주소'만 담는 용도로 둡니다.
     email: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -37,14 +35,28 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(100),
       allowNull: true
     },
+    // ✅ 컬럼 정의 객체 안에 올바르게 추가
+    base_shoulder_width: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    base_neck_dist: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    base_shoulder_diff: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW
     }
   }, {
+    // ✅ 여기는 테이블 옵션만
     tableName: 'user_table',
     timestamps: false,
-    createdAt: 'created_at', // 실제 컬럼명 명시
+    createdAt: 'created_at',
     updatedAt: false
   })
 
@@ -54,4 +66,3 @@ module.exports = (sequelize) => {
 
   return User
 }
-// 주석용

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // 1. useLocation 추가
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as FaIcons from "react-icons/fa";
 import WebcamView from '../components/WebcamView';
 import { initializeCapturePose, sendToCapturePose } from '../ai/mediapipe';
@@ -16,7 +16,6 @@ const SideCapturePage = () => {
   const [timer, setTimer] = useState(null);
   const [isMeasuring, setIsMeasuring] = useState(false);
 
-  // 2. 훅에서 함수를 안전하게 가져오기 (이름 확인 필수)
   const diagnostic = useNeckDiagnostic();
   const runAnalysis = diagnostic?.runAnalysis || diagnostic; 
 
@@ -24,24 +23,32 @@ const SideCapturePage = () => {
     initializeCapturePose(async (results) => {
       if (!results || !results.poseLandmarks || isSavingRef.current) return;
 
-      // 3. 분석 실행
       const analysisResult = typeof runAnalysis === 'function' ? runAnalysis(results.poseLandmarks) : null;
       
       if (analysisResult) {
         isSavingRef.current = true; 
-        console.log("📸 데이터 포착 성공:", analysisResult);
         
-        try {
-          await savePoseLog({
-            angle: analysisResult.angle,
-            status: analysisResult.status,
-          });
+        const token = localStorage.getItem('token');
+        const poseData = {
+          angle: analysisResult.angle,
+          status: analysisResult.status,
+          type: 'side',
+          date: new Date().toISOString()
+        };
 
-          if (from === 'mypage') {
-            localStorage.setItem('lastSideCaptureDate', new Date().toISOString());
+        try {
+          if (token) {
+            // 회원: 즉시 저장
+            await savePoseLog(poseData);
+            if (from === 'mypage') {
+              localStorage.setItem('lastSideCaptureDate', new Date().toISOString());
+            }
+          } else {
+            // 비회원: 임시 저장
+            localStorage.setItem('temp_side_pose', JSON.stringify(poseData));
           }
         } catch (e) {
-          console.error("서버 저장 실패");
+          console.error("데이터 저장 실패", e);
         }
 
         if (from === 'mypage') {
@@ -57,7 +64,6 @@ const SideCapturePage = () => {
     });
   }, [runAnalysis, navigate, from]); 
 
-  // 4. 뒤로가기 핸들러 (중괄호 누락 수정)
   const handleBackWithConfirm = () => {
     const leave = window.confirm("지금 나가면 측정 결과가 저장되지 않습니다. 그래도 나가시겠습니까?");
     if (leave) {
@@ -97,10 +103,8 @@ const SideCapturePage = () => {
 
       <div style={contentAreaStyle}>
         <p style={subTitleLabelStyle}>실루엣에 맞춰 측면으로 서주세요.</p>
-        
         <div style={videoContainerStyle}>
           <WebcamView videoRef={videoRef} />
-          
           <div style={guideOverlayWrapper}>
             <svg viewBox="0 0 640 480" style={{ width: '100%', height: '100%' }}>
               <path
@@ -113,7 +117,6 @@ const SideCapturePage = () => {
               />
             </svg>
           </div>
-
           {timer !== null && (
             <div style={timerOverlayStyle}>{timer > 0 ? timer : "📸"}</div>
           )}
@@ -133,7 +136,7 @@ const SideCapturePage = () => {
   );
 };
 
-// --- 스타일 객체 (기존 유지) ---
+// --- 스타일링 생략 (기존과 동일) ---
 const containerStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#fff', zIndex: 2000, display: 'flex', flexDirection: 'column' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', zIndex: 2100 };
 const videoContainerStyle = { position: 'relative', width: '100%', maxWidth: '640px', aspectRatio: '4/3', margin: '0 auto', overflow: 'hidden', background: '#000' };

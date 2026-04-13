@@ -9,14 +9,12 @@ import { savePoseLog } from '../api/poseApi';
 const FrontCapturePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from;
   const videoRef = useRef(null);
   const isSavingRef = useRef(false);
   
   const [timer, setTimer] = useState(null);
   const [isMeasuring, setIsMeasuring] = useState(false);
 
-  // 정면 어깨 진단 훅 사용
   const { runAnalysis } = useShoulderDiagnostic();
 
   useEffect(() => {
@@ -27,14 +25,25 @@ const FrontCapturePage = () => {
       
       if (analysisResult) {
         isSavingRef.current = true; 
+        
+        const token = localStorage.getItem('token'); // 로그인 여부 확인
+        const poseData = {
+          angle: analysisResult.angle,
+          status: analysisResult.status,
+          type: 'front',
+          date: new Date().toISOString()
+        };
+
         try {
-          await savePoseLog({
-            angle: analysisResult.angle,
-            status: analysisResult.status,
-            type: 'front'
-          });
+          if (token) {
+            // 회원: 즉시 DB 저장
+            await savePoseLog(poseData);
+          } else {
+            // 비회원: 로컬스토리지 임시 저장
+            localStorage.setItem('temp_front_pose', JSON.stringify(poseData));
+          }
         } catch (e) {
-          console.error("서버 저장 실패");
+          console.error("데이터 저장 프로세스 실패", e);
         }
 
         navigate('/diagnosis', { 
@@ -81,10 +90,8 @@ const FrontCapturePage = () => {
 
       <div style={contentAreaStyle}>
         <p style={subTitleLabelStyle}>어깨 수평이 보이도록 정면으로 서주세요.</p>
-        
         <div style={videoContainerStyle}>
           <WebcamView videoRef={videoRef} />
-          {/* 정면은 가이드 SVG를 제외하고 타이머만 표시 */}
           {timer !== null && (
             <div style={timerOverlayStyle}>{timer > 0 ? timer : "📸"}</div>
           )}
@@ -104,18 +111,14 @@ const FrontCapturePage = () => {
   );
 };
 
-// --- 스타일 객체 (SideCapturePage와 100% 동일하게 유지) ---
+// --- 스타일링 생략 (기존과 동일) ---
 const containerStyle = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#fff', zIndex: 2000, display: 'flex', flexDirection: 'column' };
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', zIndex: 2100 };
 const titleStyle = { fontSize: '1.1rem', fontWeight: '800', margin: 0 };
 const backBtnStyle = { background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer' };
-
 const contentAreaStyle = { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' };
 const subTitleLabelStyle = { marginBottom: '20px', fontSize: '1rem', fontWeight: '600', color: '#333' };
-
-// 여기서 maxWidth와 aspectRatio를 똑같이 맞춰 영상 크기를 동일하게 만듭니다.
 const videoContainerStyle = { position: 'relative', width: '100%', maxWidth: '640px', aspectRatio: '4/3', margin: '0 auto', overflow: 'hidden', background: '#000' };
-
 const timerOverlayStyle = { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '80px', color: '#fff', fontWeight: 'bold' };
 const footerStyle = { padding: '30px 20px', display: 'flex', justifyContent: 'center', backgroundColor: '#fff' };
 const buttonStyle = { width: '100%', maxWidth: '350px', padding: '18px', fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', border: 'none', borderRadius: '16px', cursor: 'pointer' };

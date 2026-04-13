@@ -1,22 +1,27 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3000/api/pose';
+// Vite Proxy 설정을 활용하므로 /api로 시작하는 상대 경로를 사용합니다.
+const API_URL = '/api/posture'; 
 
 /**
- * [1] 분석된 자세 데이터를 서버 DB에 저장 (간소화 버전)
+ * [1] 분석된 자세 데이터를 서버 DB에 저장 (측정용)
  */
 export const savePoseLog = async (postureData) => {
   try {
-    // postureData가 이미 { angle, shoulderDiff, forwardRatio, status }를 가지고 있으므로
-    // spread 연산자(...)를 사용하거나 객체 그대로 보낼 수 있습니다.
+    // 백엔드 라우터(posture.routes.js)의 router.post('/log')와 주소를 맞춤
     const response = await axios.post(`${API_URL}/log`, {
-      ...postureData,
-      createdAt: new Date().toISOString() // 시간값만 추가해서 전송
+      angle: postureData.angle,
+      status: postureData.status,
+      type: postureData.type, // 'front' 또는 'side'
+    }, {
+      headers: { 
+        Authorization: `Bearer ${localStorage.getItem('token')}` 
+      }
     });
     
     return response.data;
   } catch (error) {
-    console.error("서버로 자세 데이터 전송 중 오류 발생:", error);
+    console.error("자세 데이터 전송 실패:", error);
     throw error;
   }
 };
@@ -26,9 +31,14 @@ export const savePoseLog = async (postureData) => {
  */
 export const saveBaseline = async (baselineData) => {
   try {
+    // 백엔드 주소 설계에 따라 /baseline 또는 다른 경로일 수 있습니다.
     const response = await axios.post(`${API_URL}/baseline`, {
       ...baselineData,
       updatedAt: new Date().toISOString()
+    }, {
+      headers: { 
+        Authorization: `Bearer ${localStorage.getItem('token')}` 
+      }
     });
     return response.data;
   } catch (error) {

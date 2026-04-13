@@ -3,9 +3,9 @@ import { usePoseDetection } from './setupusePoseDetection';
 import { savePoseLog } from '../api/poseApi';
 
 const CONFIG = {
-  CHECK_DURATION: 60 * 1000, // 1분 측정
-  CHECK_INTERVAL: 60 * 60 * 1000, // 1시간 휴식
-  SEND_INTERVAL: 10 * 1000 // 10초 주기 전송
+  CHECK_DURATION: 10 * 60 * 1000, // 10분 측정
+  CHECK_INTERVAL: 30 * 60 * 1000, // 30분 휴식
+  SEND_INTERVAL: 10 * 60 * 1000   // 10분마다 1번 저장
 };
 
 export const useScheduledPose = (videoRef) => {
@@ -15,7 +15,6 @@ export const useScheduledPose = (videoRef) => {
 
   const stateRef = useRef({ status: '대기', data: { sw: "0.0000", nvd: "0.0000" } });
   
-  // 비디오 객체 안정성 검사 후 호출
   const detection = usePoseDetection(videoRef, isActive) || { shoulderWidth: 0, neckVerticalDist: 0 };
   const { shoulderWidth, neckVerticalDist } = detection;
 
@@ -35,7 +34,7 @@ export const useScheduledPose = (videoRef) => {
     return () => clearTimeout(checkTimer);
   }, []);
 
-  // 2. 분석 및 상태 업데이트
+  // 2. 분석 및 상태 업데이트 ✅ status 의존성 제거로 무한루프 방지
   useEffect(() => {
     if (!isActive || !shoulderWidth || parseFloat(shoulderWidth) === 0) return;
 
@@ -47,19 +46,18 @@ export const useScheduledPose = (videoRef) => {
     if (baseline) {
       const baseSW = parseFloat(baseline.baseShoulderWidth);
       const baseNVD = parseFloat(baseline.baseNeckDist);
-      // 10% 이상 변화 시 '주의'
       if (Math.abs(curSW - baseSW) / baseSW > 0.1 || Math.abs(curNVD - baseNVD) / baseNVD > 0.1) {
         newStatus = '주의';
       }
     }
 
     const newData = { sw: curSW.toFixed(4), nvd: curNVD.toFixed(4) };
-    if (status !== newStatus) setStatus(newStatus);
+    setStatus(prev => prev !== newStatus ? newStatus : prev); // ✅ 변경 시에만 업데이트
     setCurrentData(newData);
     stateRef.current = { status: newStatus, data: newData };
-  }, [shoulderWidth, neckVerticalDist, isActive, status]);
+  }, [shoulderWidth, neckVerticalDist, isActive]); // ✅ status 제거
 
-  // 3. 서버 전송
+  // 3. 서버 전송 ✅ angle, type 형식으로 수정
   useEffect(() => {
     let sendTimer;
     if (isActive) {
@@ -68,10 +66,9 @@ export const useScheduledPose = (videoRef) => {
         if (currentStatus === '정상' || currentStatus === '주의') {
           try {
             await savePoseLog({
-              shoulderWidth: data.sw,
-              neckVerticalDist: data.nvd,
+              angle: parseFloat(data.sw),  // ✅ shoulderWidth → angle
               status: currentStatus,
-              timestamp: new Date().toLocaleTimeString()
+              type: 'front'                // ✅ type 추가
             });
           } catch (error) { console.error("전송 실패:", error.message); }
         }

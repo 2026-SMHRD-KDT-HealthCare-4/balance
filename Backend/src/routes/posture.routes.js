@@ -1,11 +1,9 @@
-const router = require('express').Router()
-const auth = require('../middlewares/auth.middleware')
-const { savePostureData, getPostureBySession } = require('../controllers/posture.controller')
+const router = require('express').Router();
+const auth = require('../middlewares/auth.middleware');
+const { savePostureData, getPostureBySession, saveBaseline } = require('../controllers/posture.controller');
 
-// 자세 데이터 저장
-router.post('/', auth, savePostureData)
+router.post('/log', auth, savePostureData);
+router.get('/session/:session_id', auth, getPostureBySession);
+router.post('/baseline', auth, saveBaseline);
 
-// 세션별 자세 기록 조회
-router.get('/session/:session_id', auth, getPostureBySession)
-
-module.exports = router
+module.exports = router;

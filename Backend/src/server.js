@@ -17,9 +17,9 @@ sequelize
   .then(() => {
     console.log('✅ DB 연결 성공');
     
-    // [설명] 이제 User, Session 등 모든 모델이 로드된 상태에서 sync가 실행됩니다.
-    // alter: true는 테이블이 없으면 생성하고, 있으면 구조를 맞춰줍니다.
-    return sequelize.sync({ alter: true }); 
+    // [수정] alter: false로 변경하거나 아예 옵션을 제거합니다.
+    // 테이블 구조를 바꿀 일이 있다면 직접 SQL로 수정하는 것이 인덱스 꼬임을 방지하는 길입니다.
+    return sequelize.sync({ alter: false }); 
   })
   .then(() => {
     app.listen(PORT, () =>

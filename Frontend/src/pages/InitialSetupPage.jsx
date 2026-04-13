@@ -31,30 +31,50 @@ const InitialSetupPage = () => {
   };
 
   const completeSetup = async () => {
-    setIsSaving(true);
-    try {
-      // 거리 기반 기준값 생성
-      const baselineData = {
-        baseShoulderWidth: parseFloat(shoulderWidth),
-        baseNeckDist: parseFloat(neckVerticalDist),
-        baseShoulderDiff: parseFloat(shoulderDiff),
-        timestamp: new Date().toISOString()
-      };
+  // ✅ 측정값 유효성 검사 추가
+  const sw = parseFloat(shoulderWidth);
+  const nvd = parseFloat(neckVerticalDist);
+  const sd = parseFloat(shoulderDiff);
 
-      await saveBaseline(baselineData);
-      localStorage.setItem('user_baseline', JSON.stringify(baselineData));
+  if (!sw || !nvd || isNaN(sw) || isNaN(nvd)) {
+    alert("자세가 감지되지 않았습니다. 카메라 앞에 서서 다시 시도해주세요.");
+    setIsMeasuring(false);
+    setCountdown(5);
+    return;
+  }
 
-      alert("거리 기반 정자세 기준 등록이 완료되었습니다!");
-      navigate('/monitor'); 
-    } catch (error) {
-      alert("저장 중 오류가 발생했습니다.");
-      setIsMeasuring(false);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // ✅ 토큰 확인
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    navigate('/login');
+    return;
+  }
 
-  console.log("실시간 데이터:", shoulderWidth, neckVerticalDist);
+  setIsSaving(true);
+  try {
+    const baselineData = {
+      baseShoulderWidth: sw,
+      baseNeckDist: nvd,
+      baseShoulderDiff: sd,
+      timestamp: new Date().toISOString()
+    };
+
+    await saveBaseline(baselineData);
+    localStorage.setItem('user_baseline', JSON.stringify(baselineData));
+
+    alert("거리 기반 정자세 기준 등록이 완료되었습니다!");
+    navigate('/team-monitor'); // ✅ /monitor → /team-monitor
+  } catch (error) {
+    console.error("저장 실패 상세:", error.response?.data || error.message); // ✅ 에러 상세 출력
+    alert("저장 중 오류가 발생했습니다.");
+    setIsMeasuring(false);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  // console.log("실시간 데이터:", shoulderWidth, neckVerticalDist);
 
   return (
     <div style={{ padding: '40px', textAlign: 'center' }}>

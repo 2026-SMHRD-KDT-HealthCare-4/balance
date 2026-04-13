@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import { savePoseLog } from '../api/poseApi' // poseApi 임포트 필요
 
 function Login() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,6 +29,42 @@ function Login() {
     setMessage('')
   }, [currentTab])
 
+  /**
+   * 비회원 측정 데이터를 서버로 연동하는 공통 함수
+   */
+  const syncTempPoseData = async () => {
+  const frontData = localStorage.getItem('temp_front_pose');
+  const sideData = localStorage.getItem('temp_side_pose');
+
+  try {
+    if (frontData) {
+      const parsed = JSON.parse(frontData);
+      await axios.post('/api/posture/log', {   // ✅ /log 추가
+        angle: parsed.angle,
+        status: parsed.status,
+        type: 'front'
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      localStorage.removeItem('temp_front_pose');
+    }
+
+    if (sideData) {
+      const parsed = JSON.parse(sideData);
+      await axios.post('/api/posture/log', {   // ✅ /log 추가
+        angle: parsed.angle,
+        status: parsed.status,
+        type: 'side'
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      localStorage.removeItem('temp_side_pose');
+    }
+  } catch (err) {
+    console.error("데이터 연동 중 에러:", err);
+  }
+}
+
   // 로그인 — DB 연동
   const handleLoginSubmit = async (e) => {
     e.preventDefault()
@@ -36,8 +73,14 @@ function Login() {
         login_id: loginForm.login_id,
         password: loginForm.password
       })
+      
+      // 1. 토큰 및 유저정보 저장
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
+      
+      // 2. 비회원 측정 데이터가 있다면 서버로 전송
+      await syncTempPoseData();
+
       navigate('/mypage', { replace: true })
     } catch (err) {
       setMessage(err.response?.data?.message || '아이디 또는 비밀번호가 틀렸습니다')
@@ -55,6 +98,10 @@ function Login() {
         email: signupForm.email,
         password: signupForm.password
       })
+
+      // 회원가입 성공 후 바로 로그인을 시키는 구조라면 여기서 syncTempPoseData()를 호출하고,
+      // 현재처럼 다시 로그인 탭으로 보내는 구조라면 로그인 성공 시점에 데이터가 연동됩니다.
+      
       setMessage('회원가입 성공! 로그인해주세요.')
       setSearchParams({ tab: 'login' })
     } catch (err) {
@@ -65,21 +112,11 @@ function Login() {
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        {/* 로고: 클릭 시 랜딩 페이지(/)로 이동 */}
         <div 
           onClick={() => navigate('/')} 
-          style={{ 
-            textAlign: 'center', 
-            marginBottom: '2rem', 
-            cursor: 'pointer' // 마우스를 올리면 손가락 모양으로 변경
-          }}
+          style={{ textAlign: 'center', marginBottom: '2rem', cursor: 'pointer' }}
         >
-          <span style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 800, 
-            color: '#7C9E87',
-            userSelect: 'none' // 텍스트 드래그 방지
-          }}>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7C9E87', userSelect: 'none' }}>
             Re:balance
           </span>
         </div>
@@ -96,7 +133,6 @@ function Login() {
           ))}
         </div>
 
-        {/* 성공/에러 메시지 */}
         {message && (
           <p style={{
             color: message.includes('성공') ? '#1D9E75' : '#f87171',
@@ -188,6 +224,7 @@ function Login() {
   )
 }
 
+// 스타일 객체는 원본과 동일하게 유지
 const containerStyle = { minHeight: '100vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }
 const cardStyle = { background: '#F0EBE3', borderRadius: '20px', border: '1px solid #DDD5C8', padding: '2.5rem', width: '100%', maxWidth: '420px' }
 const tabContainerStyle = { display: 'flex', background: '#FAF8F5', borderRadius: '10px', padding: '4px', marginBottom: '2rem' }

@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useNotification } from './hooks/useNotification';
 
-// [팀원 페이지 임포트]
+// 페이지 컴포넌트 임포트 (기존 경로 유지)
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,14 +12,16 @@ import Diagnosis from './pages/Diagnosis';
 import SideCapturePage from './pages/SideCapturePage'; 
 import TeamMonitorPage from './pages/TeamMonitorPage';
 import InitialSetupPage from './pages/InitialSetupPage';
-// [예훈님 페이지 임포트]
-import MonitorPageStretch from './pages/MonitorPage_Stretch'; 
 import StretchPage from './pages/StretchPage';
-
-// 컴포넌트 임포트
 import Footer from './components/Footer';
 import FrontCapturePage from './pages/FrontCapturePage';
-// import NotificationManager from "./components/Notification/NotificationManager";
+
+// 알림 전용 핸들러
+function NotificationHandler() {
+  // 💡 중요: "17:13" 처럼 반드시 두 자리 형식으로 적어주세요! (17:2 X)
+  useNotification("10:30", "17:50"); 
+  return null;
+}
 
 function MainLayout() {
   return (
@@ -32,28 +35,23 @@ function MainLayout() {
 function App() {
   return (
     <BrowserRouter>
-      {/* <NotificationManager /> */}
+      {/* 알림 핸들러 실행 */}
+      <NotificationHandler />
       
       <div style={mobileFrameStyle}>
         <Routes>
-          {/* --- [그룹 1] 하단 바 없는 페이지 --- */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/diagnosis" element={<Diagnosis />} />
           <Route path="/side-capture" element={<SideCapturePage />} />
           <Route path="/stretch" element={<StretchPage />} />
 
-          {/* --- [그룹 2] 하단 바 있는 페이지 --- */}
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/setting" element={<Setting />} />
-            <Route path="/initialsetuppage" element={<InitialSetupPage />} />
-            {/* ✅ 두 가지 모니터링 페이지를 모두 유지합니다 */}
-            <Route path="/monitor" element={<MonitorPageStretch />} /> {/* 예훈님: 스트레칭 연동 모드 */}
-            <Route path="/team-monitor" element={<TeamMonitorPage />} /> {/* 팀원: PIP 알림 모드 */}
-            
-            {/* 더 이상 필요 없는 InitialSetupPage 경로는 삭제했습니다 */}
+            <Route path="/initialsetuppage" element={<InitialSetupPage />} /> 
+            <Route path="/team-monitor" element={<TeamMonitorPage />} /> 
             <Route path="/sidecapturepage" element={<SideCapturePage />} />
             <Route path="/front-capture" element={<FrontCapturePage />} />
           </Route>

@@ -5,6 +5,9 @@ const User = require('./User')(sequelize)
 const Session = require('./Session')(sequelize)
 const PostureData = require('./PostureData')(sequelize)
 const StretchingLog = require('./StretchingLog')(sequelize)
+const Posture = require('./Posture')(sequelize)
+const StretchingPlan = require('./StretchingPlan')(sequelize)
+const AiReport = require('./AiReport')(sequelize)
 
 const models = { User, Session, PostureData, StretchingLog }
 

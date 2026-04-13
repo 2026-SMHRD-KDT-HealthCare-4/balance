@@ -1,22 +1,49 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useScheduledPose } from '../hooks/useScheduledPose';
 import WebcamView from '../components/WebcamView';
+import axios from 'axios';
 
 const TeamMonitorPage = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const pipVideoRef = useRef(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const sessionIdRef = useRef(null);       // 세션 ID 저장
+  const sessionStartedRef = useRef(false); // ✅ 세션 중복 생성 방지
 
   useEffect(() => {
-    setIsMounted(true);
     if (!canvasRef.current) canvasRef.current = document.createElement('canvas');
     if (!pipVideoRef.current) pipVideoRef.current = document.createElement('video');
+
+    // ✅ 이미 시작된 경우 재실행 방지
+    if (sessionStartedRef.current) return;
+    sessionStartedRef.current = true;
+
+    // 세션 시작
+    const startSession = async () => {
+      try {
+        const res = await axios.post('/api/sessions/start', {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        sessionIdRef.current = res.data.session_id;
+        console.log('✅ 세션 시작:', res.data.session_id);
+      } catch (e) {
+        console.error('❌ 세션 시작 실패:', e);
+      }
+    };
+    startSession();
+
+    // 페이지 이탈 시 세션 종료
+    return () => {
+      if (sessionIdRef.current) {
+        axios.patch(`/api/sessions/${sessionIdRef.current}/end`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        }).catch(e => console.error('❌ 세션 종료 실패:', e));
+      }
+    };
   }, []);
 
   const { status, isActive, currentData } = useScheduledPose(videoRef);
 
-  // PIP 참조용 Ref
   const statusRef = useRef(status);
   const isActiveRef = useRef(isActive);
 
@@ -66,8 +93,6 @@ const TeamMonitorPage = () => {
       }, 500);
     } catch (e) { console.error("PIP 오류:", e); }
   };
-
-  if (!isMounted) return null;
 
   return (
     <div style={{ padding: '20px', textAlign: 'center', backgroundColor: '#F9FAFB', minHeight: '100vh' }}>
