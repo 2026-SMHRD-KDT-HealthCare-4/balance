@@ -47,7 +47,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/setting" element={<Setting />} />
-            <Route path="/setup" element={<InitialSetupPage />} />
+            <Route path="/initialsetuppage" element={<InitialSetupPage />} />
             {/* ✅ 두 가지 모니터링 페이지를 모두 유지합니다 */}
             <Route path="/monitor" element={<MonitorPageStretch />} /> {/* 예훈님: 스트레칭 연동 모드 */}
             <Route path="/team-monitor" element={<TeamMonitorPage />} /> {/* 팀원: PIP 알림 모드 */}
